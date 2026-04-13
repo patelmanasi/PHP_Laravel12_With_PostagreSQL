@@ -8,9 +8,18 @@ use Illuminate\Http\Request;
 class PostController extends Controller
 {
     // Display all posts
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::all();
+        $query = Post::query();
+
+        // ✅ ADD SEARCH
+        if ($request->search) {
+            $query->where('title', 'like', '%' . $request->search . '%')
+                ->orWhere('description', 'like', '%' . $request->search . '%');
+        }
+
+        $posts = $query->latest()->get();
+
         return view('posts.index', compact('posts'));
     }
 
@@ -58,4 +67,27 @@ class PostController extends Controller
         $post->delete();
         return redirect()->route('posts.index')->with('success', 'Post deleted successfully.');
     }
+
+    // Trash list
+    public function trash()
+    {
+        $posts = Post::onlyTrashed()->get();
+        return view('posts.trash', compact('posts'));
+    }
+
+    // Restore
+    public function restore($id)
+    {
+        Post::withTrashed()->find($id)->restore();
+
+        return redirect()->back()->with('success', 'Post restored successfully!');
+    }
+
+    // Permanent Delete
+    public function forceDelete($id)
+{
+    Post::withTrashed()->find($id)->forceDelete();
+
+    return redirect()->back()->with('success', 'Post deleted permanently!');
+}
 }
